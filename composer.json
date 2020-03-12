@@ -1,0 +1,5 @@
+{
+    "require": {
+        "carloswgama/php-pagseguro": "^3.2"
+    }
+}
