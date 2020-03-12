@@ -4,7 +4,8 @@ Permite que assinaturas de valores dinâmicos sejam geradas automaticamente para
 no carrinho gerando um novo pedido na renovação da recorrência igual ao original com o 
 status 'processando'.
 
-Possui também uma forma de ativar, suspender ou cancelar assinaturas pelo proprio wordpress tendo um menu no admin e outro na página 'Minha conta'.
+Possui também uma forma de ativar, suspender ou cancelar assinaturas pelo proprio wordpress 
+tendo um menu no admin e outro na página 'Minha conta'.
 
 === Claudio Sanches - PagSeguro for WooCommerce ===
 Contributors: claudiosanches, Gabriel Reguly
