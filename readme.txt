@@ -1,6 +1,8 @@
 
 Possui uma aba a mais de pagamento recorrente que é exibida na finalização da compra. 
-Permite que assinaturas de valores dinâmicos sejam geradas automaticamente para compras no carrinho gerando um novo pedido na renovação da recorrência igual ao original com o status 'processando'.
+Permite que assinaturas de valores dinâmicos sejam geradas automaticamente para compras 
+no carrinho gerando um novo pedido na renovação da recorrência igual ao original com o 
+status 'processando'.
 
 Possui também uma forma de ativar, suspender ou cancelar assinaturas pelo proprio wordpress tendo um menu no admin e outro na página 'Minha conta'.
 
