@@ -29,6 +29,19 @@ class WC_PagSeguro_Controle_Recorrencia {
         add_filter( 'woocommerce_account_menu_items', 'WC_PagSeguro_Controle_Recorrencia::my_account_recorrence_tab', 10, 1 );
         add_action( 'woocommerce_account_pagamentos_recorrentes_endpoint', 'WC_PagSeguro_Controle_Recorrencia::my_account_recorrence_tab_content' );
 
+        add_action( 'woocommerce_order_details_after_order_table', 'WC_PagSeguro_Controle_Recorrencia::nolo_custom_field_display_cust_order_meta', 10, 1 );
+
+    }
+
+    public static function nolo_custom_field_display_cust_order_meta($order){
+
+        if (!empty(get_post_meta( $order->id, 'origin_order', true ))) {
+
+            echo '<p><strong>Este pedido foi gerado através de uma compra recorrente.</p><br>';
+            echo '<p><strong>'.__('Pedido Original: ').'</strong> ' . get_post_meta( $order->id, 'origin_order', true ). '</p><br><br><br>';
+
+        }
+
     }
 
     public static function my_account_recorrence_tab_content () {
@@ -68,7 +81,11 @@ class WC_PagSeguro_Controle_Recorrencia {
             {
                 ?>
                 <tr class="iedit author-self level-0  post-password-required hentry">
-                    <td><?php echo get_post_meta($currentAssinatura->ID, 'compra', true) ?></td>
+                    <td>
+                        <a href="<?php echo get_site_url() . '/minha-conta/view-order/' . get_post_meta($currentAssinatura->ID, 'compra', true); ?>">
+                            <?php echo '#' . get_post_meta($currentAssinatura->ID, 'compra', true) ?>
+                        </a>
+                    </td>
                     <td><?php echo !empty(get_post_meta($currentAssinatura->ID, 'valor', true)) ? 'R$ ' . number_format(get_post_meta($currentAssinatura->ID, 'valor', true), 2, ',', '.' ) : ''; ?></td>
                     <td><?php echo get_post_meta($currentAssinatura->ID, 'periodo', true) ?></td>
                     <td><?php echo date('d/m/Y H:i:s', strtotime($currentAssinatura->post_date . ' -3 hours')); ?></td>
@@ -79,22 +96,18 @@ class WC_PagSeguro_Controle_Recorrencia {
                         if (get_post_meta($currentAssinatura->ID, 'cancelled', true) == 0) {
                             ?>
                             <div style="margin-bottom: 24px;">
-                                <a class="woocommerce-button button" href="<?php echo '/wp-json/admin/suspenderAssinatura/' . $currentAssinatura->ID ?>">
+                                <a class="woocommerce-button button" href="<?php echo get_site_url() . '/wp-json/admin/suspenderAssinatura/' . $currentAssinatura->ID ?>">
 
                                     <?php echo (get_post_meta($currentAssinatura->ID, 'active', true) == 1 ? 'Suspender' : 'Ativar'); ?>
 
                                 </a>
                             </div>
                             <div>
-                                <a class="woocommerce-button button" href="<?php echo '/wp-json/admin/cancelarAssinatura/' . $currentAssinatura->ID ?>">
+                                <a class="woocommerce-button button" href="<?php echo get_site_url() . '/wp-json/admin/cancelarAssinatura/' . $currentAssinatura->ID ?>">
                                     Cancelar
                                 </a>
                             </div>
                         <?php
-                        } else {
-
-                            echo 'Nenhuma ação disponível';
-
                         }
                         ?>
                     </td>
@@ -192,24 +205,20 @@ class WC_PagSeguro_Controle_Recorrencia {
                         if (get_post_meta($currentAssinatura->ID, 'cancelled', true) == 0) {
                             ?>
                             <div style="margin-bottom: 8px;">
-                                <a href="<?php echo '/wp-json/admin/suspenderAssinatura/' . $currentAssinatura->ID ?>">
+                                <a href="<?php echo get_site_url() . '/wp-json/admin/suspenderAssinatura/' . $currentAssinatura->ID ?>">
                                     <button class="button">
                                         <?php echo (get_post_meta($currentAssinatura->ID, 'active', true) == 1 ? 'Suspender' : 'Ativar'); ?>
                                     </button>
                                 </a>
                             </div>
                             <div>
-                                <a href="<?php echo '/wp-json/admin/cancelarAssinatura/' . $currentAssinatura->ID ?>">
+                                <a href="<?php echo get_site_url() . '/wp-json/admin/cancelarAssinatura/' . $currentAssinatura->ID ?>">
                                     <button class="button">
                                         Cancelar
                                     </button>
                                 </a>
                             </div>
                         <?php
-                        } else {
-
-                            echo 'Nenhuma ação disponível';
-
                         }
                         ?>
                     </td>
@@ -251,8 +260,6 @@ class WC_PagSeguro_Controle_Recorrencia {
         $pagseguroApi = new WC_PagSeguro_API();
 
         $pagseguroApi->cancelaAssinatura($request->get_param('id'));
-
-        header('Location: ' . admin_url('admin.php?page=woocommerce-recorrence-manager'));
 
         echo
             "

@@ -371,7 +371,8 @@ class WC_PagSeguro_Gateway extends WC_Payment_Gateway {
      * Método que recebe um id de compra do woocomerce e emite uma nova compra com os mesmos dados
      *
      * @param $orderId
-     * @return WC_Order|WP_Error
+     * @param $orderStatus
+     * @return int
      * @throws WC_Data_Exception
      */
 	public function cloneRecorrenceOrder ($orderId, $orderStatus = 'processing') {
@@ -400,6 +401,13 @@ class WC_PagSeguro_Gateway extends WC_Payment_Gateway {
             $newOrder->add_product( get_product($productId), $item['quantity']);
 
         }
+
+        //Impede que o codigo de rastreio de envio seja copiado em caso de duplicação de uma compra
+        $newOrder->update_post_meta($newOrderId, '_correios_tracking_code', '');
+        $newOrder->update_post_meta($newOrderId, 'correios_tracking_code', '');
+
+        //Salvando campo de pedido original
+        $newOrder->update_post_meta($newOrderId, 'origin_order', $orderId);
 
         //Configurando valor do frete
         $ship_rate_ob = new WC_Shipping_Rate();
@@ -564,7 +572,7 @@ class WC_PagSeguro_Gateway extends WC_Payment_Gateway {
          *
          */
 
-        if (wc_get_order($orderId)->get_status() != 'processing') {
+        if (wc_get_order($orderId)->get_status() == 'pending') {
 
             $update = wc_get_order( $orderId );
             $update->update_status( 'processing', __( 'PagSeguro: Payment approved.', 'woocommerce-pagseguro' ) );

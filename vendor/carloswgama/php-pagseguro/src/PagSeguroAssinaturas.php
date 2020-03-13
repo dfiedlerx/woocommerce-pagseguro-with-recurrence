@@ -291,7 +291,26 @@ class PagSeguroAssinaturas extends PagSeguroBase {
 		if ($response['http_code'] == 200) {
 			return $response;
 		} else {
-			throw new \Exception(current($response['body']['errors']), key($response['body']['errors']));
+
+		    foreach ($response['body']['errors'] as $key => $value) {
+
+		        if (strpos($value, 'credit card holder') !== false) {
+
+                    $response['body']['errors'][$key] = 'A data de nascimento do cartão de crédito é inválida.';
+
+                } else if (strpos($value, 'cpf is invalid:') !== false) {
+
+                    $response['body']['errors'][$key] = 'O CPF informado é inválido.';
+
+                } else if (strpos($value, 'senderPhone') !== false) {
+
+                    $response['body']['errors'][$key] = 'O numero de telefone informado no cartão está incorreto.';
+
+                }
+
+            }
+
+			throw new \Exception(current($response['body']['errors']));
 		}
 	}
 

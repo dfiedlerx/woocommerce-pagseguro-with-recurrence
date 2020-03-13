@@ -12,7 +12,30 @@
 		 * @param {string} brand
 		 */
 		function pagSeguroSetCreditCardBrand( brand ) {
-			$( '#pagseguro-credit-card-form' ).attr( 'data-credit-card-brand', brand );
+
+			if ('credit-card' === $( 'body li.payment_method_pagseguro input[name=pagseguro_payment_method]:checked' ).val()) {
+				$('#pagseguro-credit-card-form').attr('data-credit-card-brand', brand);
+			} else {
+				$( '#pagseguro-recorrence-form' ).attr( 'data-credit-card-brand', brand );
+			}
+
+		}
+
+		function searchCardBrand (bin, async = true) {
+
+			PagSeguroDirectPayment.getBrand({
+				cardBin: bin,
+				async : async,
+				success: function( data ) {
+					$( 'body' ).trigger( 'pagseguro_credit_card_brand', data.brand.name );
+					pagSeguroSetCreditCardBrand( data.brand.name );
+				},
+				error: function() {
+					$( 'body' ).trigger( 'pagseguro_credit_card_brand', 'error' );
+					pagSeguroSetCreditCardBrand( 'error' );
+				}
+			});
+
 		}
 
 		/**
@@ -47,8 +70,11 @@
 		 *
 		 * @param {string} error
 		 */
-		function pagSeguroAddErrorMessage( error ) {
-			var wrapper = $( '#pagseguro-credit-card-form' );
+		function pagSeguroAddErrorMessage( error , paymentType ) {
+			var wrapper =
+				paymentType == 'recorrence'
+					? $( '#pagseguro-recorrence-form' )
+					: $( '#pagseguro-credit-card-form' );
 
 			$( '.woocommerce-error', wrapper ).remove();
 			wrapper.prepend( '<div class="woocommerce-error" style="margin-bottom: 0.5em !important;">' + error + '</div>' );
@@ -107,7 +133,30 @@
 			$( '#pagseguro-card-holder-phone' ).mask( MaskBehavior, maskOptions );
 
 			$( '#pagseguro-bank-transfer-form input[type=radio]:checked' ).parent( 'label' ).parent( 'li' ).addClass( 'active' );
+
+			$( '#pagseguro-card-holder-cpf-recorrence' ).mask( '000.000.000-00' );
+			$( '#pagseguro-card-holder-birth-date-recorrence' ).mask( '00/00/0000' );
+			$( '#pagseguro-card-holder-phone-recorrence' ).mask(MaskBehavior,maskOptions);
+
 		}
+
+
+		$('body').mousemove(function () {
+
+			if (
+				(
+					$( '#pagseguro-recorrence-form').attr( 'data-credit-card-brand' ) == '' ||
+					!$( '#pagseguro-recorrence-form').attr( 'data-credit-card-brand' )
+				)
+			) {
+
+				var bin = $( '#pagseguro-card-number-recorrence' ).val().replace( /[^\d]/g, '' ).substr( 0, 6 );
+				searchCardBrand(bin, false);
+
+			}
+
+		});
+
 
 		/**
 		 * Form Handler.
@@ -115,6 +164,7 @@
 		 * @return {bool}
 		 */
 		function pagSeguroformHandler() {
+
 			if ( pagseguro_submit ) {
 				pagseguro_submit = false;
 
@@ -125,23 +175,43 @@
 				return true;
 			}
 
-			if ( 'credit-card' !== $( 'body li.payment_method_pagseguro input[name=pagseguro_payment_method]:checked' ).val() ) {
+			if (
+				'credit-card' !== $( 'body li.payment_method_pagseguro input[name=pagseguro_payment_method]:checked' ).val() &&
+				'recorrence' !== $( 'body li.payment_method_pagseguro input[name=pagseguro_payment_method]:checked' ).val()
+			) {
 				$( 'form.checkout, form#order_review' ).append( $( '<input name="pagseguro_sender_hash" type="hidden" />' ).val( PagSeguroDirectPayment.getSenderHash() ) );
 
 				return true;
-			}
 
-			var form = $( 'form.checkout, form#order_review' ),
-				creditCardForm  = $( '#pagseguro-credit-card-form', form ),
-				error           = false,
-				errorHtml       = '',
-				brand           = creditCardForm.attr( 'data-credit-card-brand' ),
-				cardNumber      = $( '#pagseguro-card-number', form ).val().replace( /[^\d]/g, '' ),
-				cvv             = $( '#pagseguro-card-cvc', form ).val(),
-				expirationMonth = $( '#pagseguro-card-expiry', form ).val().replace( /[^\d]/g, '' ).substr( 0, 2 ),
-				expirationYear  = $( '#pagseguro-card-expiry', form ).val().replace( /[^\d]/g, '' ).substr( 2 ),
-				installments    = $( '#pagseguro-card-installments', form ),
-				today           = new Date();
+			} else if ('credit-card' === $( 'body li.payment_method_pagseguro input[name=pagseguro_payment_method]:checked' ).val()) {
+
+				var form = $( 'form.checkout, form#order_review' ),
+					creditCardForm  = $( '#pagseguro-credit-card-form', form ),
+					error           = false,
+					errorHtml       = '',
+					brand           = creditCardForm.attr( 'data-credit-card-brand' ),
+					cardNumber      = $( '#pagseguro-card-number', form ).val().replace( /[^\d]/g, '' ),
+					cvv             = $( '#pagseguro-card-cvc', form ).val(),
+					expirationMonth = $( '#pagseguro-card-expiry', form ).val().replace( /[^\d]/g, '' ).substr( 0, 2 ),
+					expirationYear  = $( '#pagseguro-card-expiry', form ).val().replace( /[^\d]/g, '' ).substr( 2 ),
+					installments    = $( '#pagseguro-card-installments', form ),
+					today           = new Date();
+
+			} else {
+
+				var form = $( 'form.checkout, form#order_review' ),
+					creditCardForm  = $( '#pagseguro-recorrence-form', form ),
+					error           = false,
+					errorHtml       = '',
+					brand           = creditCardForm.attr( 'data-credit-card-brand' )
+				cardNumber      = $( '#pagseguro-card-number-recorrence', form ).val().replace( /[^\d]/g, '' ),
+					cvv             = $( '#pagseguro-card-cvc-recorrence', form ).val(),
+					expirationMonth = $( '#pagseguro-card-expiry-recorrence', form ).val().replace( /[^\d]/g, '' ).substr( 0, 2 ),
+					expirationYear  = $( '#pagseguro-card-expiry-recorrence', form ).val().replace( /[^\d]/g, '' ).substr( 2 ),
+					installments    = $( '#pagseguro-card-recorrence-time-recorrence', form ),
+					today           = new Date();
+
+			}
 
 			// Validate the credit card data.
 			errorHtml += '<ul>';
@@ -164,7 +234,7 @@
 			}
 
 			// Installments.
-			if ( '0' === installments.val() ) {
+			if ( '0' === installments.val() || '' === installments.val()) {
 				errorHtml += '<li>' + wc_pagseguro_params.empty_installments + '</li>';
 				error = true;
 			}
@@ -193,13 +263,14 @@
 						form.submit();
 					},
 					error: function() {
+						alert(wc_pagseguro_params.general_error);
 						pagSeguroAddErrorMessage( wc_pagseguro_params.general_error );
 					}
 				});
 
-			// Display the error messages.
+				// Display the error messages.
 			} else {
-				pagSeguroAddErrorMessage( errorHtml );
+				pagSeguroAddErrorMessage( errorHtml, $( 'body li.payment_method_pagseguro input[name=pagseguro_payment_method]:checked' ).val() );
 			}
 
 			return false;
@@ -231,7 +302,7 @@
 			});
 
 			// Get the credit card brand.
-			$( 'body' ).on( 'focusout', '#pagseguro-card-number', function() {
+			$( 'body' ).on( 'focusout', '#pagseguro-card-number,#pagseguro-card-number-recorrence', function() {
 				var bin = $( this ).val().replace( /[^\d]/g, '' ).substr( 0, 6 ),
 					instalmments = $( 'body #pagseguro-card-installments' );
 
@@ -240,19 +311,10 @@
 					instalmments.empty();
 					instalmments.attr( 'disabled', 'disabled' );
 
-					PagSeguroDirectPayment.getBrand({
-						cardBin: bin,
-						success: function( data ) {
-							$( 'body' ).trigger( 'pagseguro_credit_card_brand', data.brand.name );
-							pagSeguroSetCreditCardBrand( data.brand.name );
-						},
-						error: function() {
-							$( 'body' ).trigger( 'pagseguro_credit_card_brand', 'error' );
-							pagSeguroSetCreditCardBrand( 'error' );
-						}
-					});
+					searchCardBrand(bin);
 				}
 			});
+
 			$( 'body' ).on( 'updated_checkout', function() {
 				var field = $( 'body #pagseguro-card-number' );
 

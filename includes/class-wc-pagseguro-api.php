@@ -823,6 +823,13 @@ class WC_PagSeguro_API {
 
 	public function recorrencePlan ($posted, $xml, $order_id) {
 
+	    //Controlando caso um cartão invalido tenha sido informado
+	    if(empty($posted['pagseguro_credit_card_hash'])) {
+
+            throw new \Exception('Os dados de cartão informados não são válidos. Por favor tente novamente.');
+
+        }
+
 	    $pagSeguroSettings = get_option('woocommerce_pagseguro_settings');
 
 	    //Fornece as credenciais da api observando se o plugin está no modo sandbox ou não
@@ -943,7 +950,7 @@ class WC_PagSeguro_API {
         //Infora o Hash  gerado na etapa anterior (assinando.php), é obrigatório para comunicação com checkoutr transparente
         $pagseguro->setHashCliente($posted['pagseguro_sender_hash']);
         //Informa o Token do Cartão de Crédito gerado na etapa anterior (assinando.php)
-        $pagseguro->setTokenCartao($posted['pagseguro_cartao_token']);
+        $pagseguro->setTokenCartao($posted['pagseguro_credit_card_hash']);
         //Código usado pelo vendedor para identificar qual é a compra
         $pagseguro->setReferencia($xml['reference']);
         //Plano usado (Esse código é criado durante a criação do plano)
@@ -957,59 +964,51 @@ class WC_PagSeguro_API {
         // https://comunidade.pagseguro.uol.com.br/hc/pt-br/community/posts/360001810594-Pagamento-Recorrente-Cancelado- (o erro e a solução encontrada)
         $pagseguro->setIPCliente($_SERVER['HTTP_CLIENT_IP']);
 
-        try {
+        $assinatura = $pagseguro->assinaPlano();
+        update_post_meta($order_id, 'recorrence', 1);
+        update_post_meta($order_id, 'assinatura_hash', $assinatura['body']['code']);
 
-			$assinatura = $pagseguro->assinaPlano();
-            update_post_meta($order_id, 'recorrence', 1);
-            update_post_meta($order_id, 'assinatura_hash', $assinatura['body']['code']);
+        //Criando registro da assinatura criada anteriormente para controle no sistema
+        global $user_ID;
 
-            //Criando registro da assinatura criada anteriormente para controle no sistema
-            global $user_ID;
+        $new_post = array(
+            'post_title' => $assinatura['body']['code'],
+            'post_content' => '',
+            'post_status' => 'publish',
+            'post_date' => date('Y-m-d H:i:s'),
+            'post_author' => $user_ID,
+            'post_type' => 'assinatura',
+            'post_category' => array(0)
+        );
 
-            $new_post = array(
-                'post_title' => $assinatura['body']['code'],
-                'post_content' => '',
-                'post_status' => 'publish',
-                'post_date' => date('Y-m-d H:i:s'),
-                'post_author' => $user_ID,
-                'post_type' => 'assinatura',
-                'post_category' => array(0)
-            );
+        $newAssinaturaRegister = wp_insert_post($new_post);
 
-            $newAssinaturaRegister = wp_insert_post($new_post);
-
-            wp_update_post(array(
-                'ID'    =>  $newAssinaturaRegister,
-                'post_status'   =>  'publish'
-            ));
+        wp_update_post(array(
+            'ID'    =>  $newAssinaturaRegister,
+            'post_status'   =>  'publish'
+        ));
 
 
-            update_post_meta($newAssinaturaRegister, 'active', 1);
-            update_post_meta($newAssinaturaRegister, 'cancelled', 0);
-            update_post_meta($newAssinaturaRegister, 'compra', $order_id);
-            update_post_meta($newAssinaturaRegister, 'valor', $totalAmount);
-            update_post_meta($newAssinaturaRegister, 'periodo', $posted['pagseguro_card_recorrence-time']);
+        update_post_meta($newAssinaturaRegister, 'active', 1);
+        update_post_meta($newAssinaturaRegister, 'cancelled', 0);
+        update_post_meta($newAssinaturaRegister, 'compra', $order_id);
+        update_post_meta($newAssinaturaRegister, 'valor', $totalAmount);
+        update_post_meta($newAssinaturaRegister, 'periodo', $posted['pagseguro_card_recorrence-time']);
 
-            return $assinatura;
-
-        } catch (Exception $e) {
-
-            echo $e->getMessage();
-
-        }
-
-        exit;
+        return $assinatura;
 
     }
 
-	/**
-	 * Do payment request.
-	 *
-	 * @param  WC_Order $order  Order data.
-	 * @param  array    $posted Posted data.
-	 *
-	 * @return array
-	 */
+    /**
+     * Do payment request.
+     * @param $order
+     * @param $posted
+     * @param $order_id
+     *
+     * @return array
+     *
+     * @throws Exception
+     */
 	public function do_payment_request( $order, $posted, $order_id ) {
 		$payment_method = isset( $posted['pagseguro_payment_method'] ) ? $posted['pagseguro_payment_method'] : '';
 
