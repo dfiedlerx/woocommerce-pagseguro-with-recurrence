@@ -904,7 +904,7 @@ class WC_PagSeguro_API {
         }
 
         //Após quanto tempo a assinatura irá expirar após a contratação = valor inteiro + (DAYS||MONTHS||YEARS). Exemplo, após 5 anos
-        $pagseguro->setExpiracao(6, 'MONTHS');
+        $pagseguro->setExpiracao(12, 'MONTHS');
 
         /*
          * Máximo de pessoas que podem usar esse plano. Exemplo 10.000 pessoas podem usar esse plano
