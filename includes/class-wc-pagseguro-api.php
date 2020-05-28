@@ -904,7 +904,7 @@ class WC_PagSeguro_API {
         }
 
         //Após quanto tempo a assinatura irá expirar após a contratação = valor inteiro + (DAYS||MONTHS||YEARS). Exemplo, após 5 anos
-        $pagseguro->setExpiracao(6, 'MONTHS');
+        $pagseguro->setExpiracao(12, 'MONTHS');
 
         /*
          * Máximo de pessoas que podem usar esse plano. Exemplo 10.000 pessoas podem usar esse plano
@@ -930,7 +930,8 @@ class WC_PagSeguro_API {
 
         $pagseguro->setTelefone(substr($telefone, 0, 2), substr($telefone, 2));
         //Informa o CPF
-        $cpf = str_replace('.', '', str_replace('-', '', $posted['pagseguro_card_holder_cpf_recorrence']));
+		$cpf = str_replace('.', '', str_replace('-', '', $posted['pagseguro_card_holder_cpf_recorrence']));
+		
         $pagseguro->setCPF($cpf);
         //Informa o endereço RUA, NUMERO, COMPLEMENTO, BAIRRO, CIDADE, ESTADO, CEP
         //$pagseguro->setEnderecoCliente('Rua C', '99', 'COMPLEMENTO', 'BAIRRO', 'São Paulo', 'SP', '57000000');
@@ -962,7 +963,7 @@ class WC_PagSeguro_API {
 
         //No ambiente de testes funciona normalmente sem o IP, no ambiente "real", mesmo na documentação falando que é opcional, precisei passar o IP ($_SERVER['HTTP_CLIENT_IP'];) do cliente para finalizar corretamente a assinatura
         // https://comunidade.pagseguro.uol.com.br/hc/pt-br/community/posts/360001810594-Pagamento-Recorrente-Cancelado- (o erro e a solução encontrada)
-        $pagseguro->setIPCliente($_SERVER['HTTP_CLIENT_IP']);
+        $pagseguro->setIPCliente($pagseguro->get_the_user_ip());
 
         $assinatura = $pagseguro->assinaPlano();
         update_post_meta($order_id, 'recorrence', 1);
